@@ -1,44 +1,50 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Send } from "lucide-react";
+import React, { useState } from "react";
 
-const ChatInput = ({ onSendMessage, disabled }) => {
-  const [message, setMessage] = useState("");
+type Props = {
+  onSendMessage: (message: string) => void;
+  disabled?: boolean;
+};
 
-  const handleSend = () => {
-    if (message.trim() && !disabled) {
-      onSendMessage(message);
-      setMessage("");
-    }
+const ChatInput: React.FC<Props> = ({ onSendMessage, disabled }) => {
+  const [value, setValue] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault(); // evita reload (GET /)
+    const text = value.trim();
+    if (!text || disabled) return;
+    onSendMessage(text);
+    setValue("");
   };
 
-  const handleKeyPress = (e) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      const text = value.trim();
+      if (!text || disabled) return;
+      onSendMessage(text);
+      setValue("");
     }
   };
 
   return (
-    <div className="flex gap-3 items-end">
-      <Textarea
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        onKeyPress={handleKeyPress}
+    <form onSubmit={handleSubmit} className="flex gap-2">
+      <textarea
+        className="flex-1 resize-none rounded-xl border px-3 py-2"
         placeholder="Digite sua mensagem..."
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        rows={1}
         disabled={disabled}
-        className="min-h-[50px] max-h-[120px] resize-none bg-input border-border text-foreground placeholder:text-muted-foreground"
       />
-      <Button
-        onClick={handleSend}
-        disabled={disabled || !message.trim()}
-        size="icon"
-        className="bg-chat-gradient hover:opacity-90 transition-opacity h-[50px] w-[50px] shrink-0"
+      <button
+        type="submit" // ok pois tratamos preventDefault no handleSubmit
+        className="px-4 py-2 rounded-xl border"
+        disabled={disabled}
       >
-        <Send className="h-5 w-5" />
-      </Button>
-    </div>
+        Enviar
+      </button>
+    </form>
   );
 };
 

@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import ChatMessage from "./ChatMessage";
 import ChatInput from "./ChatInput";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "../hooks/use-toast";
 import { Loader2 } from "lucide-react";
 
 const ChatContainer = () => {
@@ -14,6 +14,7 @@ const ChatContainer = () => {
   const { toast } = useToast();
 
   const scrollToBottom = () => {
+    // @ts-ignore
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
@@ -21,57 +22,44 @@ const ChatContainer = () => {
     scrollToBottom();
   }, [messages]);
 
-  const sendMessageToAPI = async (userMessage) => {
-    // Usando chave fake por enquanto
-    const OPENAI_API_KEY = "sua-chave-api-aqui";
-    
-    try {
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-3.5-turbo",
-          messages: [
-            {
-              role: "system",
-              content: "Você é Maria, uma assistente virtual prestativa e amigável que responde em português do Brasil.",
-            },
-            ...messages.map((msg) => ({
-              role: msg.isUser ? "user" : "assistant",
-              content: msg.text,
-            })),
-            { role: "user", content: userMessage },
-          ],
-        }),
-      });
+  const sendMessageToAPI = async (userMessage: string) => {
+  try {
+    console.log("[Chat] enviando POST /api/openai:", userMessage); // <-- LOG AQUI
+    const res = await fetch("/api/openai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: userMessage }),
+    });
 
-      if (!response.ok) {
-        throw new Error("Erro na API");
-      }
-
-      const data = await response.json();
-      return data.choices[0].message.content;
-    } catch (error) {
-      console.error("Erro ao chamar API:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível obter resposta. Configure sua chave de API do OpenAI.",
-        variant: "destructive",
-      });
-      return "Desculpe, não consegui processar sua mensagem. Verifique a chave de API.";
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(body || `Status ${res.status}`);
     }
-  };
 
-  const handleSendMessage = async (message) => {
+    const data = await res.json();
+    const text =
+      data?.text ??
+      data?.raw?.choices?.[0]?.message?.content ??
+      data?.raw?.choices?.[0]?.text ??
+      null;
+
+    if (!text) throw new Error("Resposta inválida da API");
+    return text;
+  } catch (error) {
+    console.error("Erro ao chamar API:", error); // <-- LOG AQUI
+    // ... (resto do seu toast e mensagem)
+    return "Desculpe, não consegui processar sua mensagem. Verifique a chave de API e se o servidor está rodando.";
+  }
+};
+
+
+  const handleSendMessage = async (message: string) => {
     const userMessage = { text: message, isUser: true };
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
 
     const botResponse = await sendMessageToAPI(message);
-    
+
     setMessages((prev) => [...prev, { text: botResponse, isUser: false }]);
     setIsLoading(false);
   };
@@ -83,7 +71,8 @@ const ChatContainer = () => {
           Chatbot com IA
         </h1>
         <p className="text-muted-foreground">
-          Envie sua dúvida e seja respondido na hora! Estamos online 24/7!
+          Envie sua dúvida e receba uma resposta rápida em português.
+          Atendimento 24/7.
         </p>
       </div>
 
@@ -101,7 +90,8 @@ const ChatContainer = () => {
       </div>
 
       <div className="bg-card border-t border-border px-6 py-4 rounded-b-3xl">
-        <ChatInput onSendMessage={handleSendMessage} disabled={isLoading} />
+
+<ChatInput onSendMessage={handleSendMessage} disabled={isLoading} />
       </div>
     </div>
   );
