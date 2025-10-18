@@ -117,4 +117,4 @@ ss -ltnp | rg 3001 || ps aux | rg node
   - Trocar automaticamente imports "@/..." para relativos;
   - Ajudar a ajustar a rota `/api/openai` no backend.
 
-Licença: MIT (ou ajuste conforme necessário).
+Licença: Mayara Rocha 
